@@ -14,52 +14,35 @@ type Props = {
 }
 
 export default function MovieCard({
-  id, title, year, genre, imageUrl, services, serviceLogos,
+  id, title, year, genre, imageUrl,
   isFavorite, onToggleFavorite, onClick
 }: Props) {
   return (
     <div
-      className="relative flex-shrink-0 w-36 sm:w-44 rounded-xl overflow-hidden bg-gray-900 cursor-pointer group"
+      className="relative flex-shrink-0 w-32 sm:w-40 md:w-44 rounded-2xl overflow-hidden bg-gray-900 cursor-pointer group"
       onClick={() => onClick?.(id)}
     >
-      {/* ポスター画像 */}
       <div className="relative aspect-[2/3] overflow-hidden">
         <img
           src={imageUrl}
           alt={title}
-          className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
           loading="lazy"
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-
-        {/* ハートボタン */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+        <div className="absolute bottom-2 left-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+          <p className="text-white text-xs font-bold line-clamp-2 drop-shadow">{title}</p>
+        </div>
         <button
           onClick={(e) => { e.stopPropagation(); onToggleFavorite(id) }}
-          className="absolute top-2 right-2 w-8 h-8 rounded-full bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+          className="absolute top-2 right-2 w-8 h-8 rounded-full bg-black/70 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 hover:bg-yellow-300/20"
         >
-          <span className="text-base">{isFavorite ? '❤️' : '🤍'}</span>
+          <span className="text-sm">{isFavorite ? '❤️' : '🤍'}</span>
         </button>
       </div>
-
-      {/* テキスト情報 */}
       <div className="p-2">
-        <p className="text-white text-xs font-bold leading-tight line-clamp-2">{title}</p>
-        <p className="text-gray-400 text-[10px] mt-0.5">{year} · {genre}</p>
-
-        {/* 配信サービスロゴ */}
-        {serviceLogos.length > 0 && (
-          <div className="flex gap-1 mt-1.5 flex-wrap">
-            {serviceLogos.map((s) => (
-              <img
-                key={s.name + s.logoUrl}
-                src={s.logoUrl}
-                alt={s.name}
-                title={s.name}
-                className="w-4 h-4 rounded object-cover"
-              />
-            ))}
-          </div>
-        )}
+        <p className="text-white text-[11px] font-bold leading-tight line-clamp-1">{title}</p>
+        <p className="text-gray-500 text-[10px] mt-0.5">{year} · {genre}</p>
       </div>
     </div>
   )
