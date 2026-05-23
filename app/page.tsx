@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import MovieCard from './MovieCard'
+import AdBanner from './AdBanner'
 
 type Page = 'home' | 'series' | 'movies' | 'mylist' | 'trending'
 
@@ -81,7 +82,6 @@ async function fetchAndEnrich(url: string): Promise<Movie[]> {
   return enriched
 }
 
-// 横スクロール列
 function MovieRow({ title, movies, favorites, onToggleFavorite, onClickMovie }: {
   title: string
   movies: Movie[]
@@ -108,7 +108,6 @@ function MovieRow({ title, movies, favorites, onToggleFavorite, onClickMovie }: 
   )
 }
 
-// 詳細モーダル
 function MovieModal({ movie, isFavorite, onToggleFavorite, onClose }: {
   movie: Movie
   isFavorite: boolean
@@ -121,52 +120,31 @@ function MovieModal({ movie, isFavorite, onToggleFavorite, onClose }: {
   }, [])
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm"
-      onClick={onClose}
-    >
-      <div
-        className="relative bg-gray-900 rounded-2xl overflow-hidden w-full max-w-lg max-h-[90vh] overflow-y-auto shadow-2xl"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* 閉じるボタン */}
-        <button
-          onClick={onClose}
-          className="absolute top-3 right-3 z-10 w-9 h-9 rounded-full bg-black/70 flex items-center justify-center text-white hover:bg-yellow-300/20 transition-colors"
-        >
-          ✕
-        </button>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm" onClick={onClose}>
+      <div className="relative bg-gray-900 rounded-2xl overflow-hidden w-full max-w-lg max-h-[90vh] overflow-y-auto shadow-2xl" onClick={(e) => e.stopPropagation()}>
+        <button onClick={onClose} className="absolute top-3 right-3 z-10 w-9 h-9 rounded-full bg-black/70 flex items-center justify-center text-white hover:bg-yellow-300/20 transition-colors">✕</button>
 
-        {/* 特大画像 */}
         <div className="relative w-full aspect-video">
           {movie.backdropUrl
             ? <img src={movie.backdropUrl} alt={movie.title} className="w-full h-full object-cover" />
-            : <img src={movie.imageUrl} alt={movie.title} className="w-full h-full object-cover" />
-          }
+            : <img src={movie.imageUrl} alt={movie.title} className="w-full h-full object-cover" />}
           <div className="absolute inset-0 bg-gradient-to-t from-gray-900 via-transparent to-transparent" />
         </div>
 
-        {/* 情報エリア */}
         <div className="p-5">
           <div className="flex items-start justify-between gap-3 mb-3">
             <h2 className="text-xl sm:text-2xl font-black leading-tight">{movie.title}</h2>
-            <button
-              onClick={() => onToggleFavorite(movie.id)}
-              className="flex-shrink-0 w-10 h-10 rounded-full bg-gray-800 flex items-center justify-center hover:bg-yellow-300/20 transition-colors"
-            >
+            <button onClick={() => onToggleFavorite(movie.id)}
+              className="flex-shrink-0 w-10 h-10 rounded-full bg-gray-800 flex items-center justify-center hover:bg-yellow-300/20 transition-colors">
               <span className="text-xl">{isFavorite ? '❤️' : '🤍'}</span>
             </button>
           </div>
 
           <p className="text-gray-400 text-xs mb-1">{movie.year} · {movie.genre}</p>
+          {movie.overview && <p className="text-gray-300 text-sm leading-relaxed mb-5">{movie.overview}</p>}
 
-          {movie.overview && (
-            <p className="text-gray-300 text-sm leading-relaxed mb-5">{movie.overview}</p>
-          )}
-
-          {/* 配信サービス */}
           {movie.serviceLogos.length > 0 && (
-            <div>
+            <div className="mb-4">
               <p className="text-gray-500 text-xs mb-3 font-bold">▶ 配信中のサービス</p>
               <div className="flex flex-wrap gap-3">
                 {movie.serviceLogos.map((s) => (
@@ -178,7 +156,7 @@ function MovieModal({ movie, isFavorite, onToggleFavorite, onClose }: {
                   >
                     <img src={s.logoUrl} alt={s.name} className="w-6 h-6 rounded object-cover" />
                     <span className="text-white text-sm font-bold group-hover:text-yellow-300 transition-colors">{s.name}</span>
-                    <span className="text-gray-500 text-xs group-hover:text-yellow-300 transition-colors">→</span>
+                    <span className="text-gray-500 text-xs group-hover:text-yellow-300">→</span>
                   </a>
                 ))}
               </div>
@@ -186,10 +164,13 @@ function MovieModal({ movie, isFavorite, onToggleFavorite, onClose }: {
           )}
 
           {movie.serviceLogos.length === 0 && (
-            <div className="bg-gray-800 rounded-xl p-4 text-center">
+            <div className="bg-gray-800 rounded-xl p-4 text-center mb-4">
               <p className="text-gray-500 text-sm">日本での配信情報なし</p>
             </div>
           )}
+
+          {/* モーダル内広告 */}
+          <AdBanner variant="modal" />
         </div>
       </div>
     </div>
@@ -212,7 +193,6 @@ export default function Home() {
   const [searchLoading, setSearchLoading] = useState(false)
   const [searched, setSearched] = useState(false)
 
-  // ヒービュー スライドショー
   const [heroIndex, setHeroIndex] = useState(0)
   const [heroVisible, setHeroVisible] = useState(true)
   const heroRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -236,10 +216,8 @@ export default function Home() {
     fetchAndEnrich(`https://api.themoviedb.org/3/trending/all/week?api_key=${API_KEY}&language=ja-JP`)
       .then((movies) => { setTrendMovies(movies); setTrendLoading(false) })
       .catch(() => setTrendLoading(false))
-
     fetchAndEnrich(`https://api.themoviedb.org/3/discover/tv?api_key=${API_KEY}&language=ja-JP&with_genres=16&sort_by=popularity.desc`)
       .then(setAnimeMovies).catch(() => {})
-
     fetchAndEnrich(`https://api.themoviedb.org/3/discover/movie?api_key=${API_KEY}&language=ja-JP&with_genres=28&sort_by=popularity.desc`)
       .then(setActionMovies).catch(() => {})
   }, [])
@@ -285,7 +263,6 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-gray-950 text-white">
 
-      {/* ヘッダー */}
       <header className="fixed top-0 left-0 right-0 z-50 bg-black/80 backdrop-blur-sm border-b border-yellow-300/10">
         <div className="flex items-center justify-between px-4 sm:px-6 h-14 sm:h-16">
           <button onClick={() => { setPage('home'); setSearched(false) }} className="flex items-center gap-2">
@@ -302,8 +279,7 @@ export default function Home() {
           <nav className="hidden md:flex items-center gap-6">
             {navItems.map((item) => (
               <button key={item.key} onClick={() => { setPage(item.key); setSearched(false) }}
-                className={`text-sm font-bold tracking-wider transition-colors
-                  ${page === item.key ? 'text-yellow-300' : 'text-gray-400 hover:text-white'}`}>
+                className={`text-sm font-bold tracking-wider transition-colors ${page === item.key ? 'text-yellow-300' : 'text-gray-400 hover:text-white'}`}>
                 {item.label}
               </button>
             ))}
@@ -312,15 +288,10 @@ export default function Home() {
           <div className="flex items-center gap-2">
             {searchOpen ? (
               <div className="flex items-center gap-2">
-                <input
-                  autoFocus
-                  type="text"
-                  placeholder="検索..."
-                  value={searchQuery}
+                <input autoFocus type="text" placeholder="検索..." value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                  className="bg-gray-800 text-white placeholder-gray-500 rounded-lg px-3 py-1.5 text-sm outline-none focus:ring-1 focus:ring-yellow-300 w-36 sm:w-48"
-                />
+                  className="bg-gray-800 text-white placeholder-gray-500 rounded-lg px-3 py-1.5 text-sm outline-none focus:ring-1 focus:ring-yellow-300 w-36 sm:w-48" />
                 <button onClick={handleSearch} className="text-yellow-300 text-sm font-bold">検索</button>
                 <button onClick={() => setSearchOpen(false)} className="text-gray-400 text-lg">✕</button>
               </div>
@@ -334,12 +305,10 @@ export default function Home() {
           </div>
         </div>
 
-        {/* スマホ用ナビ */}
         <div className="flex md:hidden items-center gap-4 px-4 pb-2 overflow-x-auto scrollbar-hide">
           {navItems.map((item) => (
             <button key={item.key} onClick={() => { setPage(item.key); setSearched(false) }}
-              className={`flex-shrink-0 text-xs font-bold tracking-wider pb-1 border-b-2 transition-colors
-                ${page === item.key ? 'text-yellow-300 border-yellow-300' : 'text-gray-500 border-transparent'}`}>
+              className={`flex-shrink-0 text-xs font-bold tracking-wider pb-1 border-b-2 transition-colors ${page === item.key ? 'text-yellow-300 border-yellow-300' : 'text-gray-500 border-transparent'}`}>
               {item.label}
             </button>
           ))}
@@ -348,10 +317,8 @@ export default function Home() {
 
       <main className="pt-16 sm:pt-20">
 
-        {/* HOME */}
         {page === 'home' && !searched && (
           <div>
-            {/* ヒービュー スライドショー */}
             {hero && (
               <div className="relative w-full h-[55vh] sm:h-[70vh] md:h-[75vh] overflow-hidden">
                 <div className={`absolute inset-0 transition-opacity duration-700 ${heroVisible ? 'opacity-100' : 'opacity-0'}`}>
@@ -361,34 +328,25 @@ export default function Home() {
                 </div>
                 <div className="absolute inset-0 bg-gradient-to-r from-black/90 via-black/40 to-transparent" />
                 <div className="absolute inset-0 bg-gradient-to-t from-gray-950 via-transparent to-transparent" />
-
                 <div className={`absolute bottom-8 sm:bottom-16 left-4 sm:left-8 max-w-xs sm:max-w-lg transition-opacity duration-700 ${heroVisible ? 'opacity-100' : 'opacity-0'}`}>
                   <h1 className="text-2xl sm:text-4xl md:text-5xl font-black mb-2 sm:mb-3 leading-tight drop-shadow-lg">{hero.title}</h1>
                   <p className="text-gray-300 text-xs sm:text-sm mb-4 sm:mb-6 line-clamp-2 sm:line-clamp-3 leading-relaxed">{hero.overview}</p>
                   <div className="flex gap-2 sm:gap-3">
-                    <button
-                      onClick={() => setSelectedMovie(hero)}
-                      className="flex items-center gap-1.5 bg-yellow-300 text-gray-950 font-black px-4 sm:px-8 py-2 sm:py-3 rounded-lg hover:bg-yellow-200 transition-colors text-xs sm:text-sm"
-                    >
+                    <button onClick={() => setSelectedMovie(hero)}
+                      className="flex items-center gap-1.5 bg-yellow-300 text-gray-950 font-black px-4 sm:px-8 py-2 sm:py-3 rounded-lg hover:bg-yellow-200 transition-colors text-xs sm:text-sm">
                       ▶ 再生
                     </button>
-                    <button
-                      onClick={() => setSelectedMovie(hero)}
-                      className="flex items-center gap-1.5 bg-gray-700/80 text-white font-bold px-4 sm:px-8 py-2 sm:py-3 rounded-lg hover:bg-gray-600 transition-colors text-xs sm:text-sm"
-                    >
+                    <button onClick={() => setSelectedMovie(hero)}
+                      className="flex items-center gap-1.5 bg-gray-700/80 text-white font-bold px-4 sm:px-8 py-2 sm:py-3 rounded-lg hover:bg-gray-600 transition-colors text-xs sm:text-sm">
                       詳細情報
                     </button>
                   </div>
                 </div>
-
-                {/* インジケーター */}
                 <div className="absolute bottom-3 right-4 flex gap-1.5">
                   {heroMovies.map((_, i) => (
-                    <button
-                      key={i}
+                    <button key={i}
                       onClick={() => { setHeroVisible(false); setTimeout(() => { setHeroIndex(i); setHeroVisible(true) }, 300) }}
-                      className={`w-1.5 h-1.5 rounded-full transition-all duration-300 ${i === heroIndex ? 'bg-yellow-300 w-4' : 'bg-gray-500'}`}
-                    />
+                      className={`h-1.5 rounded-full transition-all duration-300 ${i === heroIndex ? 'bg-yellow-300 w-4' : 'bg-gray-500 w-1.5'}`} />
                   ))}
                 </div>
               </div>
@@ -398,6 +356,12 @@ export default function Home() {
               {trendLoading ? <LoadingRow /> : (
                 <MovieRow title="🔥 今週のトレンド" movies={trendMovies} favorites={favorites} onToggleFavorite={toggleFavorite} onClickMovie={setSelectedMovie} />
               )}
+
+              {/* 列と列の間の広告 */}
+              <div className="px-4 sm:px-6">
+                <AdBanner variant="horizontal" />
+              </div>
+
               <MovieRow title="🎌 人気のアニメ" movies={animeMovies} favorites={favorites} onToggleFavorite={toggleFavorite} onClickMovie={setSelectedMovie} />
               <MovieRow title="💥 アクション・アドベンチャー" movies={actionMovies} favorites={favorites} onToggleFavorite={toggleFavorite} onClickMovie={setSelectedMovie} />
             </div>
@@ -439,7 +403,6 @@ export default function Home() {
           </div>
         )}
 
-        {/* 検索結果オーバーレイ */}
         {searched && (
           <div className="px-4 sm:px-6 py-4">
             <div className="flex items-center justify-between mb-4 sm:mb-6">
@@ -461,7 +424,6 @@ export default function Home() {
 
       </main>
 
-      {/* 詳細モーダル */}
       {selectedMovie && (
         <MovieModal
           movie={selectedMovie}
