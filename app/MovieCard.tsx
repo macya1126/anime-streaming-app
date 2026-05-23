@@ -4,33 +4,40 @@ type Props = {
   year: string
   genre: string
   imageUrl: string
+  backdropUrl?: string
+  overview?: string
   services: string[]
   serviceLogos: { name: string; logoUrl: string }[]
   isFavorite: boolean
   onToggleFavorite: (id: number) => void
+  onClick?: (id: number) => void
 }
 
 export default function MovieCard({
-  id, title, year, genre, imageUrl, services, serviceLogos, isFavorite, onToggleFavorite
+  id, title, year, genre, imageUrl, services, serviceLogos,
+  isFavorite, onToggleFavorite, onClick
 }: Props) {
   return (
-    <div className="relative rounded-xl overflow-hidden bg-gray-900 cursor-pointer group">
-
+    <div
+      className="relative flex-shrink-0 w-36 sm:w-44 rounded-xl overflow-hidden bg-gray-900 cursor-pointer group"
+      onClick={() => onClick?.(id)}
+    >
       {/* ポスター画像 */}
       <div className="relative aspect-[2/3] overflow-hidden">
         <img
           src={imageUrl}
           alt={title}
           className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+          loading="lazy"
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
 
         {/* ハートボタン */}
         <button
           onClick={(e) => { e.stopPropagation(); onToggleFavorite(id) }}
-          className="absolute top-2 right-2 w-8 h-8 rounded-full bg-black/50 flex items-center justify-center"
+          className="absolute top-2 right-2 w-8 h-8 rounded-full bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200"
         >
-          <span className="text-lg">{isFavorite ? '❤️' : '🤍'}</span>
+          <span className="text-base">{isFavorite ? '❤️' : '🤍'}</span>
         </button>
       </div>
 
@@ -44,21 +51,12 @@ export default function MovieCard({
           <div className="flex gap-1 mt-1.5 flex-wrap">
             {serviceLogos.map((s) => (
               <img
-                key={s.name}
+                key={s.name + s.logoUrl}
                 src={s.logoUrl}
                 alt={s.name}
                 title={s.name}
-                className="w-5 h-5 rounded object-cover"
+                className="w-4 h-4 rounded object-cover"
               />
-            ))}
-          </div>
-        )}
-
-        {/* ロゴがない場合はテキストバッジ */}
-        {serviceLogos.length === 0 && services.length > 0 && (
-          <div className="flex gap-1 mt-1.5 flex-wrap">
-            {services.map((s) => (
-              <span key={s} className="bg-gray-700 text-gray-300 text-[9px] px-1.5 py-0.5 rounded-full">{s}</span>
             ))}
           </div>
         )}
