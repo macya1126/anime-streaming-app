@@ -19,7 +19,7 @@ export default function MovieCard({
 }: Props) {
   return (
     <div
-      className="relative flex-shrink-0 w-32 sm:w-40 md:w-44 rounded-2xl overflow-hidden bg-gray-900 cursor-pointer group"
+      className="relative rounded-2xl overflow-hidden bg-gray-900 cursor-pointer group flex-shrink-0 w-32 sm:w-40 md:w-44"
       onClick={() => onClick?.(id)}
     >
       <div className="relative aspect-[2/3] overflow-hidden">
@@ -30,12 +30,9 @@ export default function MovieCard({
           loading="lazy"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-        <div className="absolute bottom-2 left-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-          <p className="text-white text-xs font-bold line-clamp-2 drop-shadow">{title}</p>
-        </div>
         <button
           onClick={(e) => { e.stopPropagation(); onToggleFavorite(id) }}
-          className="absolute top-2 right-2 w-8 h-8 rounded-full bg-black/70 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 hover:bg-yellow-300/20"
+          className="absolute top-2 right-2 w-8 h-8 rounded-full bg-black/70 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200"
         >
           <span className="text-sm">{isFavorite ? '❤️' : '🤍'}</span>
         </button>
