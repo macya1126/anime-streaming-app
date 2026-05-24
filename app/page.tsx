@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import MovieCard from './MovieCard'
 import AdBanner from './AdBanner'
 
-type Page = 'home' | 'series' | 'movies' | 'mylist' | 'trending'
+type Page = 'home' | 'series' | 'movies' | 'mylist' | 'trending' | 'genre'
 type ServiceLogo = { name: string; logoUrl: string }
 type Movie = {
   id: number
@@ -25,6 +25,16 @@ const SERVICE_URLS: Record<string, string> = {
   'Disney+': 'https://www.disneyplus.com/ja-jp',
   'Hulu': 'https://www.hulu.jp',
 }
+
+const GENRE_TAGS = [
+  { label: '異世界', id: 10765 },
+  { label: '日常', id: 16 },
+  { label: 'ラブコメ', id: 10749 },
+  { label: 'アクション', id: 28 },
+  { label: 'ファンタジー', id: 14 },
+  { label: 'ホラー', id: 27 },
+  { label: 'SF', id: 878 },
+]
 
 function normalizeServiceName(name: string): string {
   if (name.includes('Netflix')) return 'Netflix'
@@ -74,21 +84,14 @@ async function fetchAndEnrich(url: string): Promise<Movie[]> {
   }))
 }
 
-// ロゴコンポーネント
 function LogoIcon() {
   return (
-    <svg width="44" height="28" viewBox="0 0 44 28" fill="none" xmlns="http://www.w3.org/2000/svg">
-      {/* 左の円 */}
+    <svg width="44" height="28" viewBox="0 0 44 28" fill="none">
       <circle cx="10" cy="16" r="9" fill="none" stroke="#FFE600" strokeWidth="2.5"/>
-      {/* 右の円 */}
       <circle cx="34" cy="16" r="9" fill="none" stroke="#FFE600" strokeWidth="2.5"/>
-      {/* 中央テレビ本体 */}
       <rect x="15" y="10" width="14" height="12" rx="2" fill="#111" stroke="#FFE600" strokeWidth="2"/>
-      {/* アンテナ左 */}
       <line x1="19" y1="10" x2="15" y2="4" stroke="#FFE600" strokeWidth="2" strokeLinecap="round"/>
-      {/* アンテナ右 */}
       <line x1="25" y1="10" x2="29" y2="4" stroke="#FFE600" strokeWidth="2" strokeLinecap="round"/>
-      {/* テレビ脚 */}
       <line x1="20" y1="22" x2="18" y2="26" stroke="#FFE600" strokeWidth="2" strokeLinecap="round"/>
       <line x1="24" y1="22" x2="26" y2="26" stroke="#FFE600" strokeWidth="2" strokeLinecap="round"/>
       <line x1="17" y1="26" x2="27" y2="26" stroke="#FFE600" strokeWidth="1.5" strokeLinecap="round"/>
@@ -96,47 +99,83 @@ function LogoIcon() {
   )
 }
 
-// 横スクロール or グリッド切り替え列
-function MovieRow({ title, movies, favorites, onToggleFavorite, onClickMovie }: {
+// 横スクロール or グリッド切り替え列（もっと見るボタン付き）
+function MovieRow({ title, movies, favorites, onToggleFavorite, onClickMovie, onViewMore }: {
   title: string
   movies: Movie[]
   favorites: number[]
   onToggleFavorite: (id: number) => void
   onClickMovie: (movie: Movie) => void
+  onViewMore?: () => void
 }) {
+  const [showAll, setShowAll] = useState(false)
   if (movies.length === 0) return null
+  const displayMovies = showAll ? movies : movies.slice(0, 12)
+
   return (
     <div className="mb-10">
-      {title && <h2 className="text-base sm:text-lg font-black mb-3 px-4 sm:px-6 text-yellow-300">{title}</h2>}
-      {/* スマホ：グリッド表示 / PC：横スクロール */}
-      <div className="sm:hidden grid grid-cols-3 gap-2 px-4">
-        {movies.map((m) => (
-          <div key={m.id} className="relative rounded-2xl overflow-hidden bg-gray-900 cursor-pointer group" onClick={() => onClickMovie(m)}>
-            <div className="relative aspect-[2/3] overflow-hidden">
-              <img src={m.imageUrl} alt={m.title} className="w-full h-full object-cover" loading="lazy" />
-              <button onClick={(e) => { e.stopPropagation(); onToggleFavorite(m.id) }}
-                className="absolute top-1 right-1 w-6 h-6 rounded-full bg-black/70 flex items-center justify-center">
-                <span className="text-[10px]">{favorites.includes(m.id) ? '❤️' : '🤍'}</span>
-              </button>
+      {title && (
+        <div className="flex items-center justify-between px-4 sm:px-6 mb-3">
+          <h2 className="text-base sm:text-lg font-black text-yellow-300">{title}</h2>
+          {onViewMore && (
+            <button onClick={onViewMore} className="text-xs text-gray-400 hover:text-yellow-300 transition-colors font-bold">
+              もっと見る →
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* スマホ：グリッド表示 */}
+      <div className="sm:hidden px-4">
+        <div className="grid grid-cols-3 gap-2">
+          {displayMovies.map((m) => (
+            <div key={m.id} className="relative rounded-2xl overflow-hidden bg-gray-900 cursor-pointer group" onClick={() => onClickMovie(m)}>
+              <div className="relative aspect-[2/3] overflow-hidden">
+                <img src={m.imageUrl} alt={m.title} className="w-full h-full object-cover" loading="lazy" />
+                <button onClick={(e) => { e.stopPropagation(); onToggleFavorite(m.id) }}
+                  className="absolute top-1 right-1 w-6 h-6 rounded-full bg-black/70 flex items-center justify-center">
+                  <span className="text-[10px]">{favorites.includes(m.id) ? '❤️' : '🤍'}</span>
+                </button>
+              </div>
+              <div className="p-1.5">
+                <p className="text-white text-[10px] font-bold leading-tight line-clamp-1">{m.title}</p>
+                <p className="text-gray-500 text-[9px]">{m.year}</p>
+              </div>
             </div>
-            <div className="p-1.5">
-              <p className="text-white text-[10px] font-bold leading-tight line-clamp-1">{m.title}</p>
-              <p className="text-gray-500 text-[9px]">{m.year}</p>
-            </div>
-          </div>
-        ))}
+          ))}
+        </div>
+        {/* スマホ：もっと見るボタン */}
+        {movies.length > 12 && (
+          <button
+            onClick={() => setShowAll(!showAll)}
+            className="w-full mt-3 py-2.5 border border-yellow-300/30 rounded-xl text-yellow-300 text-xs font-bold hover:bg-yellow-300/10 transition-colors"
+          >
+            {showAll ? '閉じる ↑' : `もっと見る（残り${movies.length - 12}件）↓`}
+          </button>
+        )}
       </div>
+
       {/* PC：横スクロール */}
       <div className="hidden sm:flex gap-3 overflow-x-auto px-6 pb-3 scrollbar-hide">
         {movies.map((m) => (
           <MovieCard key={m.id} {...m} isFavorite={favorites.includes(m.id)} onToggleFavorite={onToggleFavorite} onClick={() => onClickMovie(m)} />
         ))}
+        {/* PC：もっと見るボタン */}
+        {onViewMore && (
+          <div className="flex-shrink-0 w-32 flex items-center justify-center">
+            <button onClick={onViewMore}
+              className="flex flex-col items-center gap-2 text-yellow-300 hover:text-yellow-200 transition-colors">
+              <div className="w-12 h-12 rounded-full border-2 border-yellow-300 flex items-center justify-center text-xl">→</div>
+              <span className="text-xs font-bold">もっと見る</span>
+            </button>
+          </div>
+        )}
       </div>
     </div>
   )
 }
 
-// モーダル
+// 詳細モーダル
 function MovieModal({ movie, isFavorite, onToggleFavorite, onClose }: {
   movie: Movie
   isFavorite: boolean
@@ -147,8 +186,6 @@ function MovieModal({ movie, isFavorite, onToggleFavorite, onClose }: {
     document.body.style.overflow = 'hidden'
     return () => { document.body.style.overflow = '' }
   }, [])
-
-  const firstService = movie.serviceLogos[0]
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm" onClick={onClose}>
@@ -206,7 +243,6 @@ function PolicyModal({ type, onClose }: { type: 'privacy' | 'terms', onClose: ()
     title: '利用規約',
     body: `LOOPBOXをご利用いただきありがとうございます。\n\n本サービスは、映画・アニメの配信情報を横断検索するための情報提供サービスです。\n\n・本サービスは個人利用を目的としています。\n・コンテンツの無断転載・複製を禁止します。\n・サービス内容は予告なく変更される場合があります。\n・本サービスの利用によって生じた損害について、運営者は責任を負いません。\n\n© 2026 LOOPBOX. All rights reserved.`
   }
-
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm" onClick={onClose}>
       <div className="bg-gray-900 rounded-2xl p-6 w-full max-w-md max-h-[80vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
@@ -231,14 +267,19 @@ export default function Home() {
   const [trendMovies, setTrendMovies] = useState<Movie[]>([])
   const [animeMovies, setAnimeMovies] = useState<Movie[]>([])
   const [actionMovies, setActionMovies] = useState<Movie[]>([])
+  const [genreMovies, setGenreMovies] = useState<Movie[]>([])
+  const [genreTitle, setGenreTitle] = useState('')
   const [searchResults, setSearchResults] = useState<Movie[]>([])
+  const [suggestions, setSuggestions] = useState<Movie[]>([])
   const [trendLoading, setTrendLoading] = useState(true)
   const [searchLoading, setSearchLoading] = useState(false)
   const [searched, setSearched] = useState(false)
+  const [showSuggestions, setShowSuggestions] = useState(false)
 
   const [heroIndex, setHeroIndex] = useState(0)
   const [heroVisible, setHeroVisible] = useState(true)
   const heroRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const searchRef = useRef<HTMLDivElement>(null)
   const heroMovies = trendMovies.slice(0, 5)
   const hero = heroMovies[heroIndex] || null
 
@@ -260,9 +301,35 @@ export default function Home() {
       .then(setActionMovies).catch(() => {})
   }, [])
 
+  // インクリメンタルサーチ
+  useEffect(() => {
+    if (!searchQuery.trim() || searchQuery.length < 2) { setSuggestions([]); setShowSuggestions(false); return }
+    const timer = setTimeout(() => {
+      fetch(`https://api.themoviedb.org/3/search/multi?api_key=${API_KEY}&language=ja-JP&query=${encodeURIComponent(searchQuery)}`)
+        .then((r) => r.json())
+        .then((data) => {
+          const results = (data.results || []).filter((i: any) => i.poster_path).slice(0, 8).map(toMovie)
+          setSuggestions(results)
+          setShowSuggestions(true)
+        }).catch(() => {})
+    }, 300)
+    return () => clearTimeout(timer)
+  }, [searchQuery])
+
+  // サジェスト外クリックで閉じる
+  useEffect(() => {
+    const handleClick = (e: MouseEvent) => {
+      if (searchRef.current && !searchRef.current.contains(e.target as Node)) {
+        setShowSuggestions(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [])
+
   const handleSearch = () => {
     if (!searchQuery.trim()) return
-    setSearchLoading(true); setSearched(true); setSearchOpen(false)
+    setSearchLoading(true); setSearched(true); setSearchOpen(false); setShowSuggestions(false)
     fetch(`https://api.themoviedb.org/3/search/multi?api_key=${API_KEY}&language=ja-JP&query=${encodeURIComponent(searchQuery)}`)
       .then((r) => r.json())
       .then(async (data) => {
@@ -274,6 +341,22 @@ export default function Home() {
         }))
         setSearchResults(enriched)
       }).catch(() => setSearchLoading(false))
+  }
+
+  // ジャンルタグ検索
+  const handleGenreTag = (tag: { label: string; id: number }) => {
+    setGenreTitle(tag.label)
+    setPage('genre')
+    setSearched(false)
+    fetchAndEnrich(`https://api.themoviedb.org/3/discover/movie?api_key=${API_KEY}&language=ja-JP&with_genres=${tag.id}&sort_by=popularity.desc`)
+      .then(setGenreMovies).catch(() => {})
+  }
+
+  // もっと見る
+  const handleViewMore = (title: string, movies: Movie[]) => {
+    setGenreTitle(title)
+    setGenreMovies(movies)
+    setPage('genre')
   }
 
   const toggleFavorite = (id: number) => {
@@ -310,15 +393,32 @@ export default function Home() {
               </button>
             ))}
           </nav>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2" ref={searchRef}>
             {searchOpen ? (
-              <div className="flex items-center gap-2">
-                <input autoFocus type="text" placeholder="検索..." value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                  className="bg-gray-800 text-white placeholder-gray-500 rounded-lg px-3 py-1.5 text-sm outline-none focus:ring-1 focus:ring-yellow-300 w-36 sm:w-48" />
-                <button onClick={handleSearch} className="text-yellow-300 text-sm font-bold">検索</button>
-                <button onClick={() => setSearchOpen(false)} className="text-gray-400 text-lg">✕</button>
+              <div className="relative">
+                <div className="flex items-center gap-2">
+                  <input autoFocus type="text" placeholder="検索..." value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                    className="bg-gray-800 text-white placeholder-gray-500 rounded-lg px-3 py-1.5 text-sm outline-none focus:ring-1 focus:ring-yellow-300 w-48 sm:w-64" />
+                  <button onClick={handleSearch} className="text-yellow-300 text-sm font-bold">検索</button>
+                  <button onClick={() => { setSearchOpen(false); setShowSuggestions(false) }} className="text-gray-400 text-lg">✕</button>
+                </div>
+                {/* サジェストドロップダウン */}
+                {showSuggestions && suggestions.length > 0 && (
+                  <div className="absolute top-10 left-0 w-72 bg-gray-900 border border-gray-700 rounded-xl shadow-2xl z-50 overflow-hidden">
+                    {suggestions.map((m) => (
+                      <button key={m.id} onClick={() => { setSelectedMovie(m); setShowSuggestions(false); setSearchOpen(false) }}
+                        className="flex items-center gap-3 w-full px-3 py-2 hover:bg-gray-800 transition-colors text-left">
+                        <img src={m.imageUrl} alt={m.title} className="w-8 h-12 object-cover rounded" />
+                        <div>
+                          <p className="text-white text-xs font-bold line-clamp-1">{m.title}</p>
+                          <p className="text-gray-500 text-[10px]">{m.year} · {m.genre}</p>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
             ) : (
               <button onClick={() => setSearchOpen(true)} className="text-gray-300 hover:text-yellow-300 p-2">
@@ -341,9 +441,21 @@ export default function Home() {
 
       <main className="pt-16 sm:pt-20 flex-1">
 
+        {/* ジャンルタグバー（常に表示） */}
+        {!searched && page !== 'genre' && (
+          <div className="flex gap-2 overflow-x-auto px-4 sm:px-6 py-3 scrollbar-hide border-b border-gray-800/50">
+            {GENRE_TAGS.map((tag) => (
+              <button key={tag.id} onClick={() => handleGenreTag(tag)}
+                className="flex-shrink-0 px-3 py-1.5 rounded-full border border-yellow-300/40 text-yellow-300 text-xs font-bold hover:bg-yellow-300/10 transition-colors">
+                {tag.label}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* HOME */}
         {page === 'home' && !searched && (
           <div>
-            {/* ヒービュー */}
             {hero && (
               <div className="relative w-full h-[55vh] sm:h-[70vh] overflow-hidden">
                 <div className={`absolute inset-0 transition-opacity duration-700 ${heroVisible ? 'opacity-100' : 'opacity-0'}`}>
@@ -356,24 +468,13 @@ export default function Home() {
                 <div className={`absolute bottom-8 sm:bottom-16 left-4 sm:left-8 max-w-xs sm:max-w-lg transition-opacity duration-700 ${heroVisible ? 'opacity-100' : 'opacity-0'}`}>
                   <h1 className="text-2xl sm:text-4xl font-black mb-2 leading-tight">{hero.title}</h1>
                   <p className="text-gray-300 text-xs sm:text-sm mb-4 line-clamp-2 leading-relaxed">{hero.overview}</p>
-                  <div className="flex gap-2 sm:gap-3">
-                    {/* Playボタン → 配信サービスへ直接ジャンプ */}
-                    <a 
-                      href={hero.serviceLogos[0] ? SERVICE_URLS[hero.serviceLogos[0].name] || '#' : '#'}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-1.5 bg-yellow-300 text-gray-950 font-black px-4 sm:px-8 py-2 sm:py-3 rounded-lg hover:bg-yellow-200 transition-colors text-xs sm:text-sm"
-                    >
-                      ▶ Play
-                    </a>
-                    {/* More Infoボタン → モーダルを開く */}
-                    <button
-                      onClick={() => setSelectedMovie(hero)}
-                      className="flex items-center gap-1.5 bg-gray-700/80 text-white font-bold px-4 sm:px-8 py-2 sm:py-3 rounded-lg hover:bg-gray-600 transition-colors text-xs sm:text-sm"
-                    >
-                      More Info
-                    </button>
-                  </div>
+                  {/* Playボタンのみ → モーダルを開く */}
+                  <button
+                    onClick={() => setSelectedMovie(hero)}
+                    className="flex items-center gap-2 bg-yellow-300 text-gray-950 font-black px-6 sm:px-10 py-2.5 sm:py-3 rounded-lg hover:bg-yellow-200 transition-colors text-sm sm:text-base"
+                  >
+                    ▶ Play
+                  </button>
                 </div>
                 <div className="absolute bottom-3 right-4 flex gap-1.5">
                   {heroMovies.map((_, i) => (
@@ -384,29 +485,35 @@ export default function Home() {
                 </div>
               </div>
             )}
-
             <div className="py-4 sm:py-6">
               {trendLoading ? <LoadingRow /> : (
-                <MovieRow title="🔥 今週のトレンド" movies={trendMovies} favorites={favorites} onToggleFavorite={toggleFavorite} onClickMovie={setSelectedMovie} />
+                <MovieRow title="🔥 今週のトレンド" movies={trendMovies} favorites={favorites} onToggleFavorite={toggleFavorite} onClickMovie={setSelectedMovie}
+                  onViewMore={() => handleViewMore('🔥 今週のトレンド', trendMovies)} />
               )}
               <div className="px-4 sm:px-6"><AdBanner variant="horizontal" /></div>
-              <MovieRow title="🎌 人気のアニメ" movies={animeMovies} favorites={favorites} onToggleFavorite={toggleFavorite} onClickMovie={setSelectedMovie} />
-              <MovieRow title="💥 アクション・アドベンチャー" movies={actionMovies} favorites={favorites} onToggleFavorite={toggleFavorite} onClickMovie={setSelectedMovie} />
+              <MovieRow title="🎌 人気のアニメ" movies={animeMovies} favorites={favorites} onToggleFavorite={toggleFavorite} onClickMovie={setSelectedMovie}
+                onViewMore={() => handleViewMore('🎌 人気のアニメ', animeMovies)} />
+              <MovieRow title="💥 アクション・アドベンチャー" movies={actionMovies} favorites={favorites} onToggleFavorite={toggleFavorite} onClickMovie={setSelectedMovie}
+                onViewMore={() => handleViewMore('💥 アクション・アドベンチャー', actionMovies)} />
             </div>
           </div>
         )}
 
         {page === 'series' && !searched && (
           <div className="py-4 sm:py-6">
-            <MovieRow title="📺 シリーズ・アニメ" movies={seriesMovies} favorites={favorites} onToggleFavorite={toggleFavorite} onClickMovie={setSelectedMovie} />
-            <MovieRow title="🎌 人気のアニメ" movies={animeMovies} favorites={favorites} onToggleFavorite={toggleFavorite} onClickMovie={setSelectedMovie} />
+            <MovieRow title="📺 シリーズ・アニメ" movies={seriesMovies} favorites={favorites} onToggleFavorite={toggleFavorite} onClickMovie={setSelectedMovie}
+              onViewMore={() => handleViewMore('📺 シリーズ・アニメ', seriesMovies)} />
+            <MovieRow title="🎌 人気のアニメ" movies={animeMovies} favorites={favorites} onToggleFavorite={toggleFavorite} onClickMovie={setSelectedMovie}
+              onViewMore={() => handleViewMore('🎌 人気のアニメ', animeMovies)} />
           </div>
         )}
 
         {page === 'movies' && !searched && (
           <div className="py-4 sm:py-6">
-            <MovieRow title="🎬 映画" movies={onlyMovies} favorites={favorites} onToggleFavorite={toggleFavorite} onClickMovie={setSelectedMovie} />
-            <MovieRow title="💥 アクション" movies={actionMovies} favorites={favorites} onToggleFavorite={toggleFavorite} onClickMovie={setSelectedMovie} />
+            <MovieRow title="🎬 映画" movies={onlyMovies} favorites={favorites} onToggleFavorite={toggleFavorite} onClickMovie={setSelectedMovie}
+              onViewMore={() => handleViewMore('🎬 映画', onlyMovies)} />
+            <MovieRow title="💥 アクション" movies={actionMovies} favorites={favorites} onToggleFavorite={toggleFavorite} onClickMovie={setSelectedMovie}
+              onViewMore={() => handleViewMore('💥 アクション', actionMovies)} />
           </div>
         )}
 
@@ -427,10 +534,39 @@ export default function Home() {
 
         {page === 'trending' && !searched && (
           <div className="py-4 sm:py-6">
-            <MovieRow title="📈 今週のトレンド" movies={trendMovies} favorites={favorites} onToggleFavorite={toggleFavorite} onClickMovie={setSelectedMovie} />
+            <MovieRow title="📈 今週のトレンド" movies={trendMovies} favorites={favorites} onToggleFavorite={toggleFavorite} onClickMovie={setSelectedMovie}
+              onViewMore={() => handleViewMore('📈 今週のトレンド', trendMovies)} />
           </div>
         )}
 
+        {/* ジャンル一覧ページ */}
+        {page === 'genre' && (
+          <div className="px-4 sm:px-6 py-4">
+            <div className="flex items-center gap-3 mb-6">
+              <button onClick={() => setPage('home')} className="text-gray-400 hover:text-white text-xl">←</button>
+              <h2 className="text-xl font-black text-yellow-300">{genreTitle}</h2>
+            </div>
+            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-2 sm:gap-3">
+              {genreMovies.map((m) => (
+                <div key={m.id} className="relative rounded-2xl overflow-hidden bg-gray-900 cursor-pointer group" onClick={() => setSelectedMovie(m)}>
+                  <div className="relative aspect-[2/3] overflow-hidden">
+                    <img src={m.imageUrl} alt={m.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" loading="lazy" />
+                    <button onClick={(e) => { e.stopPropagation(); toggleFavorite(m.id) }}
+                      className="absolute top-1 right-1 w-6 h-6 rounded-full bg-black/70 flex items-center justify-center">
+                      <span className="text-[10px]">{favorites.includes(m.id) ? '❤️' : '🤍'}</span>
+                    </button>
+                  </div>
+                  <div className="p-1.5">
+                    <p className="text-white text-[10px] font-bold line-clamp-1">{m.title}</p>
+                    <p className="text-gray-500 text-[9px]">{m.year}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* 検索結果 */}
         {searched && (
           <div className="px-4 sm:px-6 py-4">
             <div className="flex items-center justify-between mb-4">
@@ -472,19 +608,14 @@ export default function Home() {
             <span className="text-yellow-300 font-black text-sm tracking-widest">LOOPBOX</span>
           </div>
           <div className="flex items-center gap-4 text-xs text-gray-500">
-            <button onClick={() => setPolicyModal('privacy')} className="hover:text-yellow-300 transition-colors">
-              Privacy Policy
-            </button>
+            <button onClick={() => setPolicyModal('privacy')} className="hover:text-yellow-300 transition-colors">Privacy Policy</button>
             <span>·</span>
-            <button onClick={() => setPolicyModal('terms')} className="hover:text-yellow-300 transition-colors">
-              Terms of Service
-            </button>
+            <button onClick={() => setPolicyModal('terms')} className="hover:text-yellow-300 transition-colors">Terms of Service</button>
           </div>
           <p className="text-gray-600 text-xs">© 2026 LOOPBOX. All rights reserved.</p>
         </div>
       </footer>
 
-      {/* モーダル類 */}
       {selectedMovie && (
         <MovieModal movie={selectedMovie} isFavorite={favorites.includes(selectedMovie.id)} onToggleFavorite={toggleFavorite} onClose={() => setSelectedMovie(null)} />
       )}
