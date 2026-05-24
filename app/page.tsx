@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import MovieCard from './MovieCard'
 import AdBanner from './AdBanner'
 
-type Page = 'home' | 'series' | 'movies' | 'mylist' | 'trending' | 'genre'
+type Page = 'home' | 'anime' | 'drama' | 'movie' | 'mylist' | 'genre'
 type ServiceLogo = { name: string; logoUrl: string }
 type Movie = {
   id: number
@@ -20,10 +20,10 @@ type Movie = {
 
 const API_KEY = 'aaf4645e0eb5029750aea69faec3c126'
 const SERVICE_URLS: Record<string, string> = {
-  'Netflix': 'https://www.netflix.com',
-  'Prime': 'https://www.amazon.co.jp/prime-video',
-  'Disney+': 'https://www.disneyplus.com/ja-jp',
-  'Hulu': 'https://www.hulu.jp',
+  'Netflix': 'https://www.netflix.com/search?q=',
+  'Prime': 'https://www.amazon.co.jp/s?k=',
+  'Disney+': 'https://www.disneyplus.com/search/',
+  'Hulu': 'https://www.hulu.jp/search?q=',
 }
 
 const GENRE_TAGS = [
@@ -65,7 +65,7 @@ function toMovie(item: any): Movie {
     id: item.id,
     title: item.title || item.name || '不明',
     year: (item.release_date || item.first_air_date || '').slice(0, 4),
-    genre: item.media_type === 'movie' ? '映画' : 'ドラマ・アニメ',
+    genre: item.media_type === 'movie' ? '映画' : item.media_type === 'tv' ? 'ドラマ・アニメ' : item.title ? '映画' : 'ドラマ・アニメ',
     imageUrl: item.poster_path ? 'https://image.tmdb.org/t/p/w500' + item.poster_path : 'https://picsum.photos/500/750',
     backdropUrl: item.backdrop_path ? 'https://image.tmdb.org/t/p/w1280' + item.backdrop_path : '',
     overview: item.overview || '',
@@ -99,7 +99,6 @@ function LogoIcon() {
   )
 }
 
-// 横スクロール or グリッド切り替え列（もっと見るボタン付き）
 function MovieRow({ title, movies, favorites, onToggleFavorite, onClickMovie, onViewMore }: {
   title: string
   movies: Movie[]
@@ -124,8 +123,6 @@ function MovieRow({ title, movies, favorites, onToggleFavorite, onClickMovie, on
           )}
         </div>
       )}
-
-      {/* スマホ：グリッド表示 */}
       <div className="sm:hidden px-4">
         <div className="grid grid-cols-3 gap-2">
           {displayMovies.map((m) => (
@@ -144,27 +141,20 @@ function MovieRow({ title, movies, favorites, onToggleFavorite, onClickMovie, on
             </div>
           ))}
         </div>
-        {/* スマホ：もっと見るボタン */}
         {movies.length > 12 && (
-          <button
-            onClick={() => setShowAll(!showAll)}
-            className="w-full mt-3 py-2.5 border border-yellow-300/30 rounded-xl text-yellow-300 text-xs font-bold hover:bg-yellow-300/10 transition-colors"
-          >
+          <button onClick={() => setShowAll(!showAll)}
+            className="w-full mt-3 py-2.5 border border-yellow-300/30 rounded-xl text-yellow-300 text-xs font-bold hover:bg-yellow-300/10 transition-colors">
             {showAll ? '閉じる ↑' : `もっと見る（残り${movies.length - 12}件）↓`}
           </button>
         )}
       </div>
-
-      {/* PC：横スクロール */}
       <div className="hidden sm:flex gap-3 overflow-x-auto px-6 pb-3 scrollbar-hide">
         {movies.map((m) => (
           <MovieCard key={m.id} {...m} isFavorite={favorites.includes(m.id)} onToggleFavorite={onToggleFavorite} onClick={() => onClickMovie(m)} />
         ))}
-        {/* PC：もっと見るボタン */}
         {onViewMore && (
           <div className="flex-shrink-0 w-32 flex items-center justify-center">
-            <button onClick={onViewMore}
-              className="flex flex-col items-center gap-2 text-yellow-300 hover:text-yellow-200 transition-colors">
+            <button onClick={onViewMore} className="flex flex-col items-center gap-2 text-yellow-300 hover:text-yellow-200 transition-colors">
               <div className="w-12 h-12 rounded-full border-2 border-yellow-300 flex items-center justify-center text-xl">→</div>
               <span className="text-xs font-bold">もっと見る</span>
             </button>
@@ -175,7 +165,6 @@ function MovieRow({ title, movies, favorites, onToggleFavorite, onClickMovie, on
   )
 }
 
-// 詳細モーダル
 function MovieModal({ movie, isFavorite, onToggleFavorite, onClose }: {
   movie: Movie
   isFavorite: boolean
@@ -212,7 +201,9 @@ function MovieModal({ movie, isFavorite, onToggleFavorite, onClose }: {
               <p className="text-gray-500 text-xs mb-3 font-bold">▶ 配信中のサービス</p>
               <div className="flex flex-wrap gap-3">
                 {movie.serviceLogos.map((s) => (
-                  <a key={s.name + "-" + s.logoUrl} href={SERVICE_URLS[s.name] || '#'} target="_blank" rel="noopener noreferrer"
+                  <a key={s.name + "-" + s.logoUrl}
+                    href={SERVICE_URLS[s.name] ? SERVICE_URLS[s.name] + encodeURIComponent(movie.title) : '#'}
+                    target="_blank" rel="noopener noreferrer"
                     className="flex items-center gap-2 bg-gray-800 hover:bg-yellow-300/10 border border-gray-700 hover:border-yellow-300/50 rounded-xl px-4 py-2.5 transition-all group">
                     <img src={s.logoUrl} alt={s.name} className="w-6 h-6 rounded object-cover" />
                     <span className="text-white text-sm font-bold group-hover:text-yellow-300">{s.name}</span>
@@ -234,14 +225,13 @@ function MovieModal({ movie, isFavorite, onToggleFavorite, onClose }: {
   )
 }
 
-// ポリシーモーダル
 function PolicyModal({ type, onClose }: { type: 'privacy' | 'terms', onClose: () => void }) {
   const content = type === 'privacy' ? {
     title: 'プライバシーポリシー',
-    body: `LOOPBOXは、ユーザーのプライバシーを尊重し、個人情報の保護に努めます。\n\n本サービスでは、映画・アニメ情報の提供にTMDB APIを使用しています。ユーザーの検索履歴や閲覧データは、サービス改善のために使用する場合があります。\n\n広告配信のため、Google AdSenseを使用する場合があります。これによりCookieが使用されることがあります。\n\nお問い合わせ：loopbox@example.com`
+    body: `LOOPBOXは、ユーザーのプライバシーを尊重し、個人情報の保護に努めます。\n\n本サービスでは、映画・アニメ情報の提供にTMDB APIを使用しています。\n\n広告配信のため、Google AdSenseを使用する場合があります。\n\nお問い合わせ：loopbox@example.com`
   } : {
     title: '利用規約',
-    body: `LOOPBOXをご利用いただきありがとうございます。\n\n本サービスは、映画・アニメの配信情報を横断検索するための情報提供サービスです。\n\n・本サービスは個人利用を目的としています。\n・コンテンツの無断転載・複製を禁止します。\n・サービス内容は予告なく変更される場合があります。\n・本サービスの利用によって生じた損害について、運営者は責任を負いません。\n\n© 2026 LOOPBOX. All rights reserved.`
+    body: `LOOPBOXをご利用いただきありがとうございます。\n\n・本サービスは個人利用を目的としています。\n・コンテンツの無断転載・複製を禁止します。\n・サービス内容は予告なく変更される場合があります。\n\n© 2026 LOOPBOX. All rights reserved.`
   }
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm" onClick={onClose}>
@@ -266,6 +256,9 @@ export default function Home() {
 
   const [trendMovies, setTrendMovies] = useState<Movie[]>([])
   const [animeMovies, setAnimeMovies] = useState<Movie[]>([])
+  const [dramaMovies, setDramaMovies] = useState<Movie[]>([])
+  const [movieList, setMovieList] = useState<Movie[]>([])
+  const [newAnimeMovies, setNewAnimeMovies] = useState<Movie[]>([])
   const [actionMovies, setActionMovies] = useState<Movie[]>([])
   const [genreMovies, setGenreMovies] = useState<Movie[]>([])
   const [genreTitle, setGenreTitle] = useState('')
@@ -293,15 +286,26 @@ export default function Home() {
   }, [heroIndex, heroMovies.length])
 
   useEffect(() => {
+    // トレンド
     fetchAndEnrich(`https://api.themoviedb.org/3/trending/all/week?api_key=${API_KEY}&language=ja-JP`)
       .then((m) => { setTrendMovies(m); setTrendLoading(false) }).catch(() => setTrendLoading(false))
+    // アニメ
     fetchAndEnrich(`https://api.themoviedb.org/3/discover/tv?api_key=${API_KEY}&language=ja-JP&with_genres=16&sort_by=popularity.desc`)
       .then(setAnimeMovies).catch(() => {})
+    // ドラマ
+    fetchAndEnrich(`https://api.themoviedb.org/3/discover/tv?api_key=${API_KEY}&language=ja-JP&with_genres=18&sort_by=popularity.desc`)
+      .then(setDramaMovies).catch(() => {})
+    // 映画
+    fetchAndEnrich(`https://api.themoviedb.org/3/discover/movie?api_key=${API_KEY}&language=ja-JP&sort_by=popularity.desc`)
+      .then(setMovieList).catch(() => {})
+    // 新作アニメ
+fetchAndEnrich(`https://api.themoviedb.org/3/discover/tv?api_key=${API_KEY}&language=ja-JP&with_genres=16&sort_by=first_air_date.desc&first_air_date.gte=2025-01-01`)
+.then(setNewAnimeMovies).catch(() => {})
+    // アクション映画
     fetchAndEnrich(`https://api.themoviedb.org/3/discover/movie?api_key=${API_KEY}&language=ja-JP&with_genres=28&sort_by=popularity.desc`)
       .then(setActionMovies).catch(() => {})
   }, [])
 
-  // インクリメンタルサーチ
   useEffect(() => {
     if (!searchQuery.trim() || searchQuery.length < 2) { setSuggestions([]); setShowSuggestions(false); return }
     const timer = setTimeout(() => {
@@ -316,12 +320,9 @@ export default function Home() {
     return () => clearTimeout(timer)
   }, [searchQuery])
 
-  // サジェスト外クリックで閉じる
   useEffect(() => {
     const handleClick = (e: MouseEvent) => {
-      if (searchRef.current && !searchRef.current.contains(e.target as Node)) {
-        setShowSuggestions(false)
-      }
+      if (searchRef.current && !searchRef.current.contains(e.target as Node)) setShowSuggestions(false)
     }
     document.addEventListener('mousedown', handleClick)
     return () => document.removeEventListener('mousedown', handleClick)
@@ -343,16 +344,14 @@ export default function Home() {
       }).catch(() => setSearchLoading(false))
   }
 
-  // ジャンルタグ検索
   const handleGenreTag = (tag: { label: string; id: number }) => {
     setGenreTitle(tag.label)
     setPage('genre')
     setSearched(false)
-    fetchAndEnrich(`https://api.themoviedb.org/3/discover/movie?api_key=${API_KEY}&language=ja-JP&with_genres=${tag.id}&sort_by=popularity.desc`)
+    fetchAndEnrich(`https://api.themoviedb.org/3/discover/tv?api_key=${API_KEY}&language=ja-JP&with_genres=${tag.id}&sort_by=popularity.desc`)
       .then(setGenreMovies).catch(() => {})
   }
 
-  // もっと見る
   const handleViewMore = (title: string, movies: Movie[]) => {
     setGenreTitle(title)
     setGenreMovies(movies)
@@ -364,21 +363,20 @@ export default function Home() {
   }
 
   const navItems: { label: string; key: Page }[] = [
-    { label: 'HOME', key: 'home' },
-    { label: 'SERIES', key: 'series' },
-    { label: 'MOVIES', key: 'movies' },
-    { label: 'MY LIST', key: 'mylist' },
-    { label: 'TRENDING', key: 'trending' },
+    { label: 'ホーム', key: 'home' },
+    { label: 'アニメ', key: 'anime' },
+    { label: 'ドラマ', key: 'drama' },
+    { label: '映画', key: 'movie' },
+    { label: 'マイリスト', key: 'mylist' },
   ]
 
-  const seriesMovies = trendMovies.filter((m) => m.genre !== '映画')
-  const onlyMovies = trendMovies.filter((m) => m.genre === '映画')
-  const favoriteMovies = trendMovies.filter((m) => favorites.includes(m.id))
+  const favoriteMovies = [...trendMovies, ...animeMovies, ...dramaMovies, ...movieList]
+    .filter((m, i, arr) => arr.findIndex(x => x.id === m.id) === i)
+    .filter((m) => favorites.includes(m.id))
 
   return (
     <div className="min-h-screen bg-gray-950 text-white flex flex-col">
 
-      {/* ヘッダー */}
       <header className="fixed top-0 left-0 right-0 z-50 bg-black/80 backdrop-blur-sm border-b border-yellow-300/10">
         <div className="flex items-center justify-between px-4 sm:px-6 h-14 sm:h-16">
           <button onClick={() => { setPage('home'); setSearched(false) }} className="flex items-center gap-2">
@@ -404,7 +402,6 @@ export default function Home() {
                   <button onClick={handleSearch} className="text-yellow-300 text-sm font-bold">検索</button>
                   <button onClick={() => { setSearchOpen(false); setShowSuggestions(false) }} className="text-gray-400 text-lg">✕</button>
                 </div>
-                {/* サジェストドロップダウン */}
                 {showSuggestions && suggestions.length > 0 && (
                   <div className="absolute top-10 left-0 w-72 bg-gray-900 border border-gray-700 rounded-xl shadow-2xl z-50 overflow-hidden">
                     {suggestions.map((m) => (
@@ -441,7 +438,6 @@ export default function Home() {
 
       <main className="pt-16 sm:pt-20 flex-1">
 
-        {/* ジャンルタグバー（常に表示） */}
         {!searched && page !== 'genre' && (
           <div className="flex gap-2 overflow-x-auto px-4 sm:px-6 py-3 scrollbar-hide border-b border-gray-800/50">
             {GENRE_TAGS.map((tag) => (
@@ -453,33 +449,27 @@ export default function Home() {
           </div>
         )}
 
-        {/* HOME */}
+        {/* ホーム */}
         {page === 'home' && !searched && (
           <div>
             {hero && (
               <div className="relative w-full h-[55vh] sm:h-[70vh] overflow-hidden">
                 <div className={`absolute inset-0 transition-opacity duration-700 ${heroVisible ? 'opacity-100' : 'opacity-0'}`}>
-                  {hero.backdropUrl
-                    ? <img src={hero.backdropUrl} alt={hero.title} className="w-full h-full object-cover" />
-                    : <div className="w-full h-full bg-gray-800" />}
+                  {hero.backdropUrl ? <img src={hero.backdropUrl} alt={hero.title} className="w-full h-full object-cover" /> : <div className="w-full h-full bg-gray-800" />}
                 </div>
                 <div className="absolute inset-0 bg-gradient-to-r from-black/90 via-black/40 to-transparent" />
                 <div className="absolute inset-0 bg-gradient-to-t from-gray-950 via-transparent to-transparent" />
                 <div className={`absolute bottom-8 sm:bottom-16 left-4 sm:left-8 max-w-xs sm:max-w-lg transition-opacity duration-700 ${heroVisible ? 'opacity-100' : 'opacity-0'}`}>
                   <h1 className="text-2xl sm:text-4xl font-black mb-2 leading-tight">{hero.title}</h1>
                   <p className="text-gray-300 text-xs sm:text-sm mb-4 line-clamp-2 leading-relaxed">{hero.overview}</p>
-                  {/* Playボタンのみ → モーダルを開く */}
-                  <button
-                    onClick={() => setSelectedMovie(hero)}
-                    className="flex items-center gap-2 bg-yellow-300 text-gray-950 font-black px-6 sm:px-10 py-2.5 sm:py-3 rounded-lg hover:bg-yellow-200 transition-colors text-sm sm:text-base"
-                  >
+                  <button onClick={() => setSelectedMovie(hero)}
+                    className="flex items-center gap-2 bg-yellow-300 text-gray-950 font-black px-6 sm:px-10 py-2.5 sm:py-3 rounded-lg hover:bg-yellow-200 transition-colors text-sm sm:text-base">
                     ▶ Play
                   </button>
                 </div>
                 <div className="absolute bottom-3 right-4 flex gap-1.5">
                   {heroMovies.map((_, i) => (
-                    <button key={i}
-                      onClick={() => { setHeroVisible(false); setTimeout(() => { setHeroIndex(i); setHeroVisible(true) }, 300) }}
+                    <button key={i} onClick={() => { setHeroVisible(false); setTimeout(() => { setHeroIndex(i); setHeroVisible(true) }, 300) }}
                       className={`h-1.5 rounded-full transition-all duration-300 ${i === heroIndex ? 'bg-yellow-300 w-4' : 'bg-gray-500 w-1.5'}`} />
                   ))}
                 </div>
@@ -493,30 +483,43 @@ export default function Home() {
               <div className="px-4 sm:px-6"><AdBanner variant="horizontal" /></div>
               <MovieRow title="🎌 人気のアニメ" movies={animeMovies} favorites={favorites} onToggleFavorite={toggleFavorite} onClickMovie={setSelectedMovie}
                 onViewMore={() => handleViewMore('🎌 人気のアニメ', animeMovies)} />
-              <MovieRow title="💥 アクション・アドベンチャー" movies={actionMovies} favorites={favorites} onToggleFavorite={toggleFavorite} onClickMovie={setSelectedMovie}
-                onViewMore={() => handleViewMore('💥 アクション・アドベンチャー', actionMovies)} />
+                <MovieRow title="🆕 新作アニメ" movies={newAnimeMovies} favorites={favorites} onToggleFavorite={toggleFavorite} onClickMovie={setSelectedMovie}
+  onViewMore={() => handleViewMore('🆕 新作アニメ', newAnimeMovies)} />
+              <MovieRow title="📺 人気のドラマ" movies={dramaMovies} favorites={favorites} onToggleFavorite={toggleFavorite} onClickMovie={setSelectedMovie}
+                onViewMore={() => handleViewMore('📺 人気のドラマ', dramaMovies)} />
+              <MovieRow title="🎬 人気の映画" movies={movieList} favorites={favorites} onToggleFavorite={toggleFavorite} onClickMovie={setSelectedMovie}
+                onViewMore={() => handleViewMore('🎬 人気の映画', movieList)} />
             </div>
           </div>
         )}
 
-        {page === 'series' && !searched && (
+        {/* アニメ */}
+        {page === 'anime' && !searched && (
           <div className="py-4 sm:py-6">
-            <MovieRow title="📺 シリーズ・アニメ" movies={seriesMovies} favorites={favorites} onToggleFavorite={toggleFavorite} onClickMovie={setSelectedMovie}
-              onViewMore={() => handleViewMore('📺 シリーズ・アニメ', seriesMovies)} />
             <MovieRow title="🎌 人気のアニメ" movies={animeMovies} favorites={favorites} onToggleFavorite={toggleFavorite} onClickMovie={setSelectedMovie}
               onViewMore={() => handleViewMore('🎌 人気のアニメ', animeMovies)} />
           </div>
         )}
 
-        {page === 'movies' && !searched && (
+        {/* ドラマ */}
+        {page === 'drama' && !searched && (
           <div className="py-4 sm:py-6">
-            <MovieRow title="🎬 映画" movies={onlyMovies} favorites={favorites} onToggleFavorite={toggleFavorite} onClickMovie={setSelectedMovie}
-              onViewMore={() => handleViewMore('🎬 映画', onlyMovies)} />
-            <MovieRow title="💥 アクション" movies={actionMovies} favorites={favorites} onToggleFavorite={toggleFavorite} onClickMovie={setSelectedMovie}
-              onViewMore={() => handleViewMore('💥 アクション', actionMovies)} />
+            <MovieRow title="📺 人気のドラマ" movies={dramaMovies} favorites={favorites} onToggleFavorite={toggleFavorite} onClickMovie={setSelectedMovie}
+              onViewMore={() => handleViewMore('📺 人気のドラマ', dramaMovies)} />
           </div>
         )}
 
+        {/* 映画 */}
+        {page === 'movie' && !searched && (
+          <div className="py-4 sm:py-6">
+            <MovieRow title="🎬 人気の映画" movies={movieList} favorites={favorites} onToggleFavorite={toggleFavorite} onClickMovie={setSelectedMovie}
+              onViewMore={() => handleViewMore('🎬 人気の映画', movieList)} />
+            <MovieRow title="💥 アクション映画" movies={actionMovies} favorites={favorites} onToggleFavorite={toggleFavorite} onClickMovie={setSelectedMovie}
+              onViewMore={() => handleViewMore('💥 アクション映画', actionMovies)} />
+          </div>
+        )}
+
+        {/* マイリスト */}
         {page === 'mylist' && !searched && (
           <div className="py-4 sm:py-6 px-4 sm:px-6">
             <h2 className="text-base sm:text-lg font-black mb-4 text-yellow-300">❤️ マイリスト</h2>
@@ -527,19 +530,28 @@ export default function Home() {
                 <p className="text-gray-600 text-xs mt-1">カードのハートを押して追加しよう！</p>
               </div>
             ) : (
-              <MovieRow title="" movies={favoriteMovies} favorites={favorites} onToggleFavorite={toggleFavorite} onClickMovie={setSelectedMovie} />
+              <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2 sm:gap-3">
+                {favoriteMovies.map((m) => (
+                  <div key={m.id} className="relative rounded-2xl overflow-hidden bg-gray-900 cursor-pointer" onClick={() => setSelectedMovie(m)}>
+                    <div className="relative aspect-[2/3]">
+                      <img src={m.imageUrl} alt={m.title} className="w-full h-full object-cover" />
+                      <button onClick={(e) => { e.stopPropagation(); toggleFavorite(m.id) }}
+                        className="absolute top-1 right-1 w-6 h-6 rounded-full bg-black/70 flex items-center justify-center">
+                        <span className="text-[10px]">❤️</span>
+                      </button>
+                    </div>
+                    <div className="p-1.5">
+                      <p className="text-white text-[10px] font-bold line-clamp-1">{m.title}</p>
+                      <p className="text-gray-500 text-[9px]">{m.year}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
             )}
           </div>
         )}
 
-        {page === 'trending' && !searched && (
-          <div className="py-4 sm:py-6">
-            <MovieRow title="📈 今週のトレンド" movies={trendMovies} favorites={favorites} onToggleFavorite={toggleFavorite} onClickMovie={setSelectedMovie}
-              onViewMore={() => handleViewMore('📈 今週のトレンド', trendMovies)} />
-          </div>
-        )}
-
-        {/* ジャンル一覧ページ */}
+        {/* ジャンル一覧 */}
         {page === 'genre' && (
           <div className="px-4 sm:px-6 py-4">
             <div className="flex items-center gap-3 mb-6">
@@ -549,7 +561,7 @@ export default function Home() {
             <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-2 sm:gap-3">
               {genreMovies.map((m) => (
                 <div key={m.id} className="relative rounded-2xl overflow-hidden bg-gray-900 cursor-pointer group" onClick={() => setSelectedMovie(m)}>
-                  <div className="relative aspect-[2/3] overflow-hidden">
+                  <div className="relative aspect-[2/3]">
                     <img src={m.imageUrl} alt={m.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" loading="lazy" />
                     <button onClick={(e) => { e.stopPropagation(); toggleFavorite(m.id) }}
                       className="absolute top-1 right-1 w-6 h-6 rounded-full bg-black/70 flex items-center justify-center">
@@ -579,7 +591,7 @@ export default function Home() {
                 <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-2 sm:gap-3">
                   {searchResults.map((m) => (
                     <div key={m.id} className="relative rounded-2xl overflow-hidden bg-gray-900 cursor-pointer group" onClick={() => setSelectedMovie(m)}>
-                      <div className="relative aspect-[2/3] overflow-hidden">
+                      <div className="relative aspect-[2/3]">
                         <img src={m.imageUrl} alt={m.title} className="w-full h-full object-cover" loading="lazy" />
                         <button onClick={(e) => { e.stopPropagation(); toggleFavorite(m.id) }}
                           className="absolute top-1 right-1 w-6 h-6 rounded-full bg-black/70 flex items-center justify-center">
@@ -600,7 +612,6 @@ export default function Home() {
 
       </main>
 
-      {/* フッター */}
       <footer className="border-t border-gray-800 py-6 px-4 sm:px-6 mt-8">
         <div className="max-w-4xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
           <div className="flex items-center gap-2">
